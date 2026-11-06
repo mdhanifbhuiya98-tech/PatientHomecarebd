@@ -19,7 +19,7 @@ table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;p
 label{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px}input,select,textarea{width:100%;padding:9px;border:1px solid var(--bd);border-radius:9px;background:var(--bg);color:var(--tx);font:inherit}
 .ck{display:flex;gap:6px;align-items:center;margin:4px 0}.ck input{width:auto}.av{width:36px;height:36px;border-radius:50%;object-fit:cover}
 .tag{padding:2px 9px;border-radius:20px;background:var(--bd);font-size:12px}.bad{color:var(--dg);font-weight:600}
-#login{margin:auto;width:340px}@media(max-width:760px){nav{width:64px}nav a,nav h2 span{font-size:0}nav a::first-letter{font-size:16px}}
+#login{margin:auto;width:340px}@media(max-width:760px){body{flex-direction:column}nav{width:100%;height:auto;position:static;display:flex;flex-wrap:wrap;gap:4px;padding:10px}nav h2{width:100%;margin:0 0 6px}nav a{padding:7px 10px;margin:0;font-size:13px}main{padding:12px}}
 </style></head><body>
 <script>
 const API='https://script.google.com/macros/s/AKfycbyBvOqRyKAXR0uL0bf7P7tmdPg0nT8YlIXSEFTONQVm4Ase15Xwn8tkGQ1WjB1L6XER/exec';
@@ -36,7 +36,7 @@ const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&g
 const $=s=>document.querySelector(s),N=v=>Number(v)||0,tk=n=>'৳'+N(n).toLocaleString();
 const thumb=id=>`https://drive.google.com/thumbnail?id=${id}&sz=w300`;
 async function call(a){const r=await fetch(API,{method:'POST',body:JSON.stringify({...a,user:U?.user,pass:U?.pass})});const j=await r.json();if(j.error)throw j.error;return j}
-async function load(){if(!U||modal)return;try{D=await call({action:'all'});draw()}catch(e){if(/Invalid/.test(e)){logout()}}}
+async function load(){if(!U||modal)return;try{D=await call({action:'all'});draw()}catch(e){if(/Invalid/.test(String(e)))return logout();const m=$('#m');if(m&&!Object.keys(D).length)m.innerHTML=`<div class="card bad">Could not load data: ${esc(e.message||e)}<br><br><button class="btn" onclick="load()">Retry</button></div>`}}
 function logout(){localStorage.removeItem('u');U=null;boot()}
 const nm=(t,i)=>(D[t]?.find(x=>x.id==i)||{}).name||'';
 const S=()=>D.settings?.[0]||{};
@@ -44,7 +44,8 @@ function boot(){document.body.innerHTML=U?`<nav><h2>${S().logo?`<img src="${thum
 async function login(){U={user:$('#lu').value,pass:$('#lp').value};try{await call({action:'login'});localStorage.u=JSON.stringify(U);boot()}catch(e){U=null;$('#le').textContent=e}}
 function theme(){const t=document.documentElement.dataset.theme=='dark'?'light':'dark';document.documentElement.dataset.theme=t;localStorage.th=t}
 function go(p){page=p;draw()}
-function draw(){if(!U||!$('#m'))return;document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.id=='n_'+page));const m=$('#m');
+function draw(){try{draw0()}catch(e){$('#m').innerHTML=`<div class="card bad">Display error: ${esc(e.message||e)}</div>`}}
+function draw0(){if(!U||!$('#m'))return;document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.id=='n_'+page));const m=$('#m');
  m.innerHTML=`<div class="top"><h1>${P[page]}</h1>${F[page]?`<button class="btn" onclick="form('${page}')">+ New</button>`:''}</div>`+(page=='dash'?dash():page=='alerts'?alerts():page=='settings'?settings():table(page));
  const n=$('nav h2 span');if(n)n.textContent=S().name||'Patient Home Care BD'}
 function dash(){const e=D.employees||[],c=D.clients||[],mi=(D.income||[]).filter(x=>x.date?.startsWith(month)),me=(D.expenses||[]).filter(x=>x.date?.startsWith(month)),ms=(D.salaries||[]).filter(x=>x.month==month);
@@ -62,15 +63,16 @@ function table(t){const fs=F[t].filter(f=>f[2]!='area'&&f[0]!='files'),rs=[...(D
  return `<div class="wrap"><table><tr>${fs.map(f=>`<th>${f[1]}</th>`).join('')}<th></th></tr>${rs.map(r=>`<tr>${fs.map(f=>`<td>${show(f,r)}</td>`).join('')}<td style="white-space:nowrap">${t=='income'||t=='salaries'?`<button class="btn s" onclick="inv('${t}','${r.id}')">Print</button> `:''}<button class="btn s" onclick="form('${t}','${r.id}')">Edit</button> <button class="btn d" onclick="rm('${t}','${r.id}')">✕</button></td></tr>`).join('')||'<tr><td>No data yet</td></tr>'}</table></div>`}
 function alerts(){const c=(D.clients||[]).filter(x=>!(D.income||[]).some(i=>i.client==x.id&&i.date?.startsWith(month))),e=(D.employees||[]).filter(x=>x.status!='Inactive'&&!(D.salaries||[]).some(s=>s.emp==x.id&&s.month==month));
  return `<div class="top"><span>Month <input type="month" value="${month}" onchange="month=this.value;draw()" style="width:auto"></span></div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))"><div class="card"><h3>Clients not paid (${c.length})</h3>${c.map(x=>`<div class="ck bad">${esc(x.name)} — ${esc(x.phone)} — due ${tk(x.fee)}</div>`).join('')||'All paid ✓'}</div><div class="card"><h3>Salary not paid (${e.length})</h3>${e.map(x=>`<div class="ck bad">${esc(x.name)} — ${tk(x.salary)}</div>`).join('')||'All paid ✓'}</div></div>`}
-function settings(){const s=S();return `<div class="card" style="max-width:520px">${[['name','Company Name'],['phone','Phone'],['address','Address']].map(([k,l])=>`<label>${l}</label><input id="s_${k}" value="${esc(s[k]||'')}">`).join('')}<label>Logo</label><input type="file" id="s_logo" accept="image/*"><br><br><button class="btn" onclick="saveSet()">Save</button></div>`}
-async function saveSet(){modal=true;const row={id:'main',logo:S().logo||'',name:$('#s_name').value,phone:$('#s_phone').value,address:$('#s_address').value},f=$('#s_logo').files[0];if(f)row.logo=(await up(f)).id;await call({action:'save',sheet:'settings',row});modal=false;await load();boot()}
+function settings(){const s=S();return `<div class="card" style="max-width:520px">${[['name','Company Name'],['phone','Phone'],['address','Address']].map(([k,l])=>`<label>${l}</label><input id="s_${k}" value="${esc(s[k]||'')}">`).join('')}<label>Logo</label><input type="file" id="s_logo" accept="image/*"><br><br><button class="btn" onclick="saveSet()">Save</button></div><div class="card" style="max-width:520px;margin-top:14px"><h3>Admin Login</h3><label>New User ID</label><input id="a_u" value="${esc(U.user)}"><label>New Password</label><input id="a_p" type="password" placeholder="min 4 characters"><br><br><button class="btn" onclick="saveAcct()">Change ID / Password</button></div>`}
+async function saveSet(){modal=true;try{const row={id:'main',logo:S().logo||'',name:$('#s_name').value,phone:$('#s_phone').value,address:$('#s_address').value},f=$('#s_logo').files[0];if(f)row.logo=(await up(f)).id;await call({action:'save',sheet:'settings',row});modal=false;await load();boot()}catch(e){modal=false;alert(e.message||e)}}
+async function saveAcct(){const u=$('#a_u').value.trim(),p=$('#a_p').value;if(u.length<3||p.length<4)return alert('User ID min 3, password min 4 characters');try{await call({action:'account',newUser:u,newPass:p});U={user:u,pass:p};localStorage.u=JSON.stringify(U);alert('Updated');load()}catch(e){alert(e.message||e)}}
 function up(f){return new Promise((ok,no)=>{const r=new FileReader();r.onload=async()=>{try{ok(await call({action:'upload',name:f.name,mime:f.type||'application/octet-stream',data:r.result.split(',')[1]}))}catch(e){no(e)}};r.readAsDataURL(f)})}
 function form(t,id){modal=true;const r=(D[t]||[]).find(x=>x.id==id)||{};
  const inp=f=>{const[k,l,ty,o]=f,v=r[k]||'';let h;
   if(ty=='area')h=`<textarea name="${k}">${esc(v)}</textarea>`;
-  else if(ty=='sel')h=`<select name="${k}">${o.map(x=>`<option ${x==v?'selected':''}>${x}</option>`)}</select>`;
+  else if(ty=='sel')h=`<select name="${k}">${o.map(x=>`<option ${x==v?'selected':''}>${x}</option>`).join('')}</select>`;
   else if(ty=='cat')h=`<input name="${k}" list="dl_${t}${k}" value="${esc(v)}" placeholder="Choose or type"><datalist id="dl_${t}${k}">${o.map(x=>`<option>${x}</option>`).join('')}</datalist>`;
-  else if(ty=='client'||ty=='emp'){const L=D[ty=='client'?'clients':'employees']||[];h=`<select name="${k}"><option value="">— select —</option>${L.map(x=>`<option value="${x.id}" ${x.id==v?'selected':''}>${esc(x.name)}</option>`)}</select>`}
+  else if(ty=='client'||ty=='emp'){const L=D[ty=='client'?'clients':'employees']||[];h=`<select name="${k}"><option value="">— select —</option>${L.map(x=>`<option value="${x.id}" ${x.id==v?'selected':''}>${esc(x.name)}</option>`).join('')}</select>`}
   else if(ty=='emps'){const sel=v.split(',');h=(D.employees||[]).map(x=>`<label class="ck"><input type="checkbox" class="em" value="${x.id}" ${sel.includes(x.id)?'checked':''}> ${esc(x.name)} <span class="tag">${esc(x.status)}</span></label>`).join('')}
   else if(ty=='file'||ty=='files')h=`<input type="file" name="${k}" ${ty=='files'?'multiple':''}>${v?`<small>Saved: ${show(f,r)}</small>`:''}`;
   else h=`<input name="${k}" type="${ty||'text'}" value="${esc(v)}">`;return `<label>${l}</label>${h}`};
