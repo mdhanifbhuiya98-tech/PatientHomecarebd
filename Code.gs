@@ -34,6 +34,17 @@ function api(r) {
   const ok = users.some(u => u.user === r.user && u.pass === r.pass);
   if (!ok) return { error: 'Invalid user ID or password' };
   if (r.action === 'login') return { ok: true };
+  if (r.action === 'account') {
+    if (!r.newUser || String(r.newPass).length < 4) throw 'ID/password too short';
+    const us = sh('users'), v = us.getDataRange().getValues();
+    for (let i = 1; i < v.length; i++) {
+      if (String(v[i][1]) === r.user && String(v[i][2]) === r.pass) {
+        us.getRange(i + 1, 2, 1, 2).setNumberFormat('@').setValues([[r.newUser, r.newPass]]);
+        return { ok: true };
+      }
+    }
+    throw 'User not found';
+  }
   if (r.action === 'all') {
     const d = {};
     TABLES.filter(t => t !== 'users').forEach(t => d[t] = rows(t));
