@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Patient Home Care BD</title>
+<style>
+:root{--bg:#f3f7f6;--card:#fff;--tx:#12302c;--mu:#6b8580;--ac:#0f9d8a;--ac2:#f5a524;--bd:#dce8e5;--dg:#e0475b}
+[data-theme=dark]{--bg:#0c1917;--card:#132623;--tx:#e4f3f0;--mu:#8fb0aa;--bd:#22403b}
+*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,system-ui,sans-serif;background:var(--bg);color:var(--tx);display:flex;min-height:100vh}
+nav{width:210px;background:linear-gradient(170deg,#0b6b5e,#0f9d8a 60%,#f5a524);color:#fff;padding:18px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+nav h2{font-size:15px;margin:0 0 16px;display:flex;gap:8px;align-items:center}nav img{width:34px;height:34px;border-radius:9px;object-fit:cover}
+nav a{display:block;padding:10px 12px;border-radius:10px;color:#fff;cursor:pointer;margin-bottom:3px;font-size:14px}nav a.on,nav a:hover{background:rgba(255,255,255,.22)}
+main{flex:1;padding:22px;min-width:0}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:8px;flex-wrap:wrap}
+h1{margin:0;font-size:22px}.btn{background:var(--ac);color:#fff;border:0;padding:9px 15px;border-radius:10px;cursor:pointer;font-size:13px}.btn.s{background:var(--card);color:var(--tx);border:1px solid var(--bd)}.btn.d{background:var(--dg)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px}
+.card small{color:var(--mu)}.card b{display:block;font-size:24px;margin:6px 0}.card.hl{border-top:4px solid var(--ac2)}
+table{width:100%;border-collapse:collapse;font-size:13px}th,td{text-align:left;padding:9px;border-bottom:1px solid var(--bd);vertical-align:middle}th{color:var(--mu);font-weight:600}
+.wrap{overflow:auto;background:var(--card);border:1px solid var(--bd);border-radius:16px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:9;padding:12px}
+.md{background:var(--card);border-radius:18px;padding:20px;width:560px;max-width:100%;max-height:92vh;overflow:auto}
+label{display:block;font-size:12px;color:var(--mu);margin:10px 0 4px}input,select,textarea{width:100%;padding:9px;border:1px solid var(--bd);border-radius:9px;background:var(--bg);color:var(--tx);font:inherit}
+.ck{display:flex;gap:6px;align-items:center;margin:4px 0}.ck input{width:auto}.av{width:36px;height:36px;border-radius:50%;object-fit:cover}
+.tag{padding:2px 9px;border-radius:20px;background:var(--bd);font-size:12px}.bad{color:var(--dg);font-weight:600}
+#login{margin:auto;width:340px}@media(max-width:760px){nav{width:64px}nav a,nav h2 span{font-size:0}nav a::first-letter{font-size:16px}}
+</style></head><body>
+<script>
+const API='https://script.google.com/macros/s/AKfycbyBvOqRyKAXR0uL0bf7P7tmdPg0nT8YlIXSEFTONQVm4Ase15Xwn8tkGQ1WjB1L6XER/exec';
+const F={
+employees:[['name','Full Name'],['phone','Phone','tel'],['cat','Category','cat',['Nurse','Aya','Ward Boy','Physiotherapist','Caregiver']],['salary','Monthly Salary','number'],['status','Status','sel',['Active','Free','Inactive']],['address','Address','area'],['photo','Photo','file'],['cv','CV','file'],['files','Other Files','files']],
+clients:[['name','Client Name'],['phone','Phone','tel'],['address','Address','area'],['cat','Service Category','cat',['Nursing','Patient Care','Elderly Care','Physiotherapy','Baby Care']],['fee','Monthly Fee','number'],['start','Start Date','date'],['emps','Assigned Employees','emps'],['note','Notes','area']],
+income:[['date','Date','date'],['client','Client','client'],['cat','Category','cat',['Monthly Fee','Advance','Registration Fee','Other']],['amount','Amount (BDT)','number'],['note','Note','area']],
+expenses:[['date','Date','date'],['cat','Category','cat',['Transport','Office Rent','Utilities','Marketing','Equipment','Other']],['amount','Amount (BDT)','number'],['note','Note','area']],
+salaries:[['month','Month','month'],['emp','Employee','emp'],['amount','Amount (BDT)','number'],['note','Note','area']]};
+const P={dash:'Dashboard',employees:'Employees',clients:'Clients',income:'Client Payments',expenses:'Expenses',salaries:'Salaries',alerts:'Alerts',settings:'Settings'};
+let U=JSON.parse(localStorage.u||'null'),D={},page='dash',month=new Date().toISOString().slice(0,7),modal=false;
+document.documentElement.dataset.theme=localStorage.th||'light';
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=s=>document.querySelector(s),N=v=>Number(v)||0,tk=n=>'৳'+N(n).toLocaleString();
+const thumb=id=>`https://drive.google.com/thumbnail?id=${id}&sz=w300`;
+async function call(a){const r=await fetch(API,{method:'POST',body:JSON.stringify({...a,user:U?.user,pass:U?.pass})});const j=await r.json();if(j.error)throw j.error;return j}
+async function load(){if(!U||modal)return;try{D=await call({action:'all'});draw()}catch(e){if(/Invalid/.test(e)){logout()}}}
+function logout(){localStorage.removeItem('u');U=null;boot()}
+const nm=(t,i)=>(D[t]?.find(x=>x.id==i)||{}).name||'';
+const S=()=>D.settings?.[0]||{};
+function boot(){document.body.innerHTML=U?`<nav><h2>${S().logo?`<img src="${thumb(S().logo)}">`:''}<span>${esc(S().name||'Patient Home Care BD')}</span></h2>${Object.entries(P).map(([k,v])=>`<a id="n_${k}" onclick="go('${k}')">${v}</a>`).join('')}<a onclick="theme()">◐ Dark / Light</a><a onclick="logout()">Logout</a></nav><main id="m"></main>`:`<div id="login" class="card"><h2>Patient Home Care BD</h2><label>User ID</label><input id="lu"><label>Password</label><input id="lp" type="password"><p id="le" class="bad"></p><button class="btn" onclick="login()">Login</button></div>`;if(U)load()}
+async function login(){U={user:$('#lu').value,pass:$('#lp').value};try{await call({action:'login'});localStorage.u=JSON.stringify(U);boot()}catch(e){U=null;$('#le').textContent=e}}
+function theme(){const t=document.documentElement.dataset.theme=='dark'?'light':'dark';document.documentElement.dataset.theme=t;localStorage.th=t}
+function go(p){page=p;draw()}
+function draw(){if(!U||!$('#m'))return;document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('on',a.id=='n_'+page));const m=$('#m');
+ m.innerHTML=`<div class="top"><h1>${P[page]}</h1>${F[page]?`<button class="btn" onclick="form('${page}')">+ New</button>`:''}</div>`+(page=='dash'?dash():page=='alerts'?alerts():page=='settings'?settings():table(page));
+ const n=$('nav h2 span');if(n)n.textContent=S().name||'Patient Home Care BD'}
+function dash(){const e=D.employees||[],c=D.clients||[],mi=(D.income||[]).filter(x=>x.date?.startsWith(month)),me=(D.expenses||[]).filter(x=>x.date?.startsWith(month)),ms=(D.salaries||[]).filter(x=>x.month==month);
+ const sum=a=>a.reduce((s,x)=>s+N(x.amount),0),assigned=new Set(c.flatMap(x=>(x.emps||'').split(',')).filter(Boolean)),act=e.filter(x=>x.status!='Inactive'),work=act.filter(x=>assigned.has(x.id)).length;
+ const allE=sum(D.expenses||[]),avg=(D.expenses||[]).length?allE/(D.expenses||[]).length:0,card=(a,b,c2='')=>`<div class="card ${c2}"><small>${a}</small><b>${b}</b></div>`;
+ return `<div class="top"><span>Month <input type="month" value="${month}" onchange="month=this.value;draw()" style="width:auto"></span></div><div class="grid">
+ <div class="card hl"><small>Total Employees</small><b>${e.length}</b><small>Working ${work} · Free ${act.length-work}</small></div>
+ ${card('Total Clients',c.length)}${card('Monthly Income',tk(sum(mi)))}${card('Monthly Expense',tk(sum(me)))}${card('Monthly Salary Paid',tk(sum(ms)))}
+ ${card('Monthly Profit',tk(sum(mi)-sum(me)-sum(ms)))}${card('Average Expense',tk(avg))}${card('Total Received (All)',tk(sum(D.income||[])))}${card('Total Contacts',c.length+e.length)}</div>`}
+function show(f,r){const v=r[f[0]]||'';if(f[0]=='photo')return v?`<img class="av" src="${thumb(v.split('|')[1])}">`:'';
+ if(f[2]=='client')return esc(nm('clients',v));if(f[2]=='emp')return esc(nm('employees',v));if(f[2]=='emps')return esc(v.split(',').filter(Boolean).map(i=>nm('employees',i)).join(', '));
+ if(f[2]=='file'||f[2]=='files')return v?v.split(';').map(s=>{const[n,id]=s.split('|');return `<a href="https://drive.google.com/file/d/${id}/view" target="_blank">${esc(n)}</a>`}).join('<br>'):'';
+ if(f[2]=='number')return tk(v);return esc(v)}
+function table(t){const fs=F[t].filter(f=>f[2]!='area'&&f[0]!='files'),rs=[...(D[t]||[])].reverse();
+ return `<div class="wrap"><table><tr>${fs.map(f=>`<th>${f[1]}</th>`).join('')}<th></th></tr>${rs.map(r=>`<tr>${fs.map(f=>`<td>${show(f,r)}</td>`).join('')}<td style="white-space:nowrap">${t=='income'||t=='salaries'?`<button class="btn s" onclick="inv('${t}','${r.id}')">Print</button> `:''}<button class="btn s" onclick="form('${t}','${r.id}')">Edit</button> <button class="btn d" onclick="rm('${t}','${r.id}')">✕</button></td></tr>`).join('')||'<tr><td>No data yet</td></tr>'}</table></div>`}
+function alerts(){const c=(D.clients||[]).filter(x=>!(D.income||[]).some(i=>i.client==x.id&&i.date?.startsWith(month))),e=(D.employees||[]).filter(x=>x.status!='Inactive'&&!(D.salaries||[]).some(s=>s.emp==x.id&&s.month==month));
+ return `<div class="top"><span>Month <input type="month" value="${month}" onchange="month=this.value;draw()" style="width:auto"></span></div><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr))"><div class="card"><h3>Clients not paid (${c.length})</h3>${c.map(x=>`<div class="ck bad">${esc(x.name)} — ${esc(x.phone)} — due ${tk(x.fee)}</div>`).join('')||'All paid ✓'}</div><div class="card"><h3>Salary not paid (${e.length})</h3>${e.map(x=>`<div class="ck bad">${esc(x.name)} — ${tk(x.salary)}</div>`).join('')||'All paid ✓'}</div></div>`}
+function settings(){const s=S();return `<div class="card" style="max-width:520px">${[['name','Company Name'],['phone','Phone'],['address','Address']].map(([k,l])=>`<label>${l}</label><input id="s_${k}" value="${esc(s[k]||'')}">`).join('')}<label>Logo</label><input type="file" id="s_logo" accept="image/*"><br><br><button class="btn" onclick="saveSet()">Save</button></div>`}
+async function saveSet(){modal=true;const row={id:'main',logo:S().logo||'',name:$('#s_name').value,phone:$('#s_phone').value,address:$('#s_address').value},f=$('#s_logo').files[0];if(f)row.logo=(await up(f)).id;await call({action:'save',sheet:'settings',row});modal=false;await load();boot()}
+function up(f){return new Promise((ok,no)=>{const r=new FileReader();r.onload=async()=>{try{ok(await call({action:'upload',name:f.name,mime:f.type||'application/octet-stream',data:r.result.split(',')[1]}))}catch(e){no(e)}};r.readAsDataURL(f)})}
+function form(t,id){modal=true;const r=(D[t]||[]).find(x=>x.id==id)||{};
+ const inp=f=>{const[k,l,ty,o]=f,v=r[k]||'';let h;
+  if(ty=='area')h=`<textarea name="${k}">${esc(v)}</textarea>`;
+  else if(ty=='sel')h=`<select name="${k}">${o.map(x=>`<option ${x==v?'selected':''}>${x}</option>`)}</select>`;
+  else if(ty=='cat')h=`<input name="${k}" list="dl_${t}${k}" value="${esc(v)}" placeholder="Choose or type"><datalist id="dl_${t}${k}">${o.map(x=>`<option>${x}</option>`).join('')}</datalist>`;
+  else if(ty=='client'||ty=='emp'){const L=D[ty=='client'?'clients':'employees']||[];h=`<select name="${k}"><option value="">— select —</option>${L.map(x=>`<option value="${x.id}" ${x.id==v?'selected':''}>${esc(x.name)}</option>`)}</select>`}
+  else if(ty=='emps'){const sel=v.split(',');h=(D.employees||[]).map(x=>`<label class="ck"><input type="checkbox" class="em" value="${x.id}" ${sel.includes(x.id)?'checked':''}> ${esc(x.name)} <span class="tag">${esc(x.status)}</span></label>`).join('')}
+  else if(ty=='file'||ty=='files')h=`<input type="file" name="${k}" ${ty=='files'?'multiple':''}>${v?`<small>Saved: ${show(f,r)}</small>`:''}`;
+  else h=`<input name="${k}" type="${ty||'text'}" value="${esc(v)}">`;return `<label>${l}</label>${h}`};
+ document.body.insertAdjacentHTML('beforeend',`<div class="ov"><div class="md"><h3>${id?'Edit':'New'} — ${P[t]}</h3><form id="f">${F[t].map(inp).join('')}</form><br><button class="btn" id="sv" onclick="save('${t}','${id||''}')">Save</button> <button class="btn s" onclick="closeM()">Cancel</button></div></div>`)}
+function closeM(){document.querySelector('.ov')?.remove();modal=false}
+async function save(t,id){const b=$('#sv');b.textContent='Saving...';b.disabled=true;try{const old=(D[t]||[]).find(x=>x.id==id)||{},row={...old};if(id)row.id=id;else delete row.id;
+ for(const f of F[t]){const k=f[0];if(f[2]=='emps')row[k]=[...document.querySelectorAll('.em:checked')].map(x=>x.value).join(',');
+  else if(f[2]=='file'||f[2]=='files'){const fl=[...document.querySelector(`[name=${k}]`).files];if(fl.length){const o=[];for(const x of fl){const u=await up(x);o.push(u.name+'|'+u.id)}row[k]=o.join(';')}}
+  else row[k]=document.querySelector(`[name=${k}]`).value}
+ await call({action:'save',sheet:t,row});closeM();await load()}catch(e){alert(e);b.textContent='Save';b.disabled=false}}
+async function rm(t,id){if(!confirm('Delete this record?'))return;await call({action:'del',sheet:t,id});load()}
+function inv(t,id){const r=D[t].find(x=>x.id==id),s=S(),sal=t=='salaries',who=sal?nm('employees',r.emp):nm('clients',r.client),cl=D.clients.find(x=>x.id==r.client)||{};
+ const w=window.open('','_blank');w.document.write(`<html><head><title>${sal?'Salary Sheet':'Invoice'} ${r.id}</title><style>body{font-family:Arial;padding:40px;color:#222}table{width:100%;border-collapse:collapse;margin-top:24px}td,th{border:1px solid #ccc;padding:10px;text-align:left}h1{color:#0f9d8a}.r{display:flex;justify-content:space-between}img{height:60px}</style></head><body contenteditable="true"><div class="r"><div>${s.logo?`<img src="${thumb(s.logo)}"><br>`:''}<b>${esc(s.name||'Patient Home Care BD')}</b><br>${esc(s.address||'')}<br>${esc(s.phone||'')}</div><div><h1>${sal?'SALARY SHEET':'INVOICE'}</h1>No: ${sal?'SAL':'INV'}-${r.id.toUpperCase()}<br>Date: ${r.date||r.month}</div></div><p><b>${sal?'Employee':'Billed To'}:</b> ${esc(who)}<br>${sal?'':esc(cl.address||'')+'<br>'+esc(cl.phone||'')}</p><table><tr><th>Description</th><th>${sal?'Month':'Category'}</th><th>Amount (BDT)</th></tr><tr><td>${esc(r.note||(sal?'Monthly salary':'Home care service'))}</td><td>${esc(r.cat||r.month)}</td><td>${N(r.amount).toLocaleString()}</td></tr><tr><th colspan="2">Total</th><th>BDT ${N(r.amount).toLocaleString()}</th></tr></table><p style="margin-top:60px">Authorized Signature: ____________</p><p><button onclick="print()">Print</button> <small>(text is editable before printing)</small></p></body></html>`);w.document.close()}
+boot();setInterval(load,5000);
+</script></body></html>
