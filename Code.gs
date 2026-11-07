@@ -1,6 +1,6 @@
 // Patient Home Care BD - Backend (Google Apps Script)
 // Run setup() once, then Deploy > New deployment > Web app (Execute as: Me, Access: Anyone)
-const TABLES = ['employees', 'clients', 'income', 'expenses', 'salaries', 'settings', 'users'];
+const TABLES = ['employees', 'clients', 'income', 'expenses', 'salaries', 'settings', 'users', 'invoices'];
 
 function setup() {
   TABLES.forEach(sh);
