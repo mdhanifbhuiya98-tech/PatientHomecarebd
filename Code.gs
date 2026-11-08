@@ -52,6 +52,10 @@ function api(r) {
   }
   if (r.action === 'save') { if (r.sheet === 'users') throw 'Not allowed'; return { row: save(r.sheet, r.row) }; }
   if (r.action === 'del') { del(r.sheet, r.id); return { ok: true }; }
+  if (r.action === 'file') {
+    const f = DriveApp.getFileById(r.id), b = f.getBlob();
+    return { name: f.getName(), mime: b.getContentType(), data: Utilities.base64Encode(b.getBytes()) };
+  }
   if (r.action === 'upload') {
     const it = DriveApp.getFoldersByName('PHC_BD_Files');
     const f = it.hasNext() ? it.next() : DriveApp.createFolder('PHC_BD_Files');
